@@ -69,6 +69,10 @@ services:
       - "traefik.http.routers.coolify.entrypoints=websecure"
       - "traefik.http.routers.coolify.tls.certresolver=letsencrypt"
 
+networks:
+  proxy:
+    driver: bridge
+
 volumes:
   traefik_data:
     external: true
