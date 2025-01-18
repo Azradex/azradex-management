@@ -6,7 +6,7 @@ networks:
 
 services:
   traefik:
-    container_name: coolify-proxy-v2
+    container_name: coolify-proxy-v4
     image: 'traefik:v3.1'
     restart: unless-stopped
     extra_hosts:
@@ -62,3 +62,19 @@ services:
       - 'traefik.http.routers.admin-secure.tls.certresolver=letsencrypt'
       - 'traefik.http.routers.admin-secure.service=admin-service'
       - 'traefik.http.services.admin-service.loadbalancer.server.port=8080'
+
+  coolify:
+    container_name: coolify
+    image: coollabsio/coolify
+    restart: unless-stopped
+    networks:
+      - coolify
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.coolify.rule=Host(`coolify.azradex.com`)"
+      - "traefik.http.routers.coolify.entrypoints=https"
+      - "traefik.http.routers.coolify.tls=true"
+      - "traefik.http.routers.coolify.tls.certresolver=letsencrypt"
+      - "traefik.http.services.coolify.loadbalancer.server.port=80"
