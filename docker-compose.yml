@@ -6,7 +6,7 @@ networks:
 
 services:
   traefik:
-    container_name: coolify-proxy
+    container_name: coolify-proxy-v1
     image: 'traefik:v3.1'
     restart: unless-stopped
     extra_hosts:
