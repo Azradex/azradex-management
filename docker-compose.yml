@@ -16,7 +16,6 @@ services:
       - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
-      - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
@@ -26,29 +25,10 @@ services:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
-  coolify:
-    image: coollabsio/coolify:latest
-    container_name: coolify
-    restart: unless-stopped
-    depends_on:
-      - traefik
-    networks:
-      - proxy
-    volumes:
-      - coolify_data:/app/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.coolify.rule=Host(`coolify.${DOMAIN_NAME}`)"
-      - "traefik.http.routers.coolify.entrypoints=websecure"
-      - "traefik.http.routers.coolify.tls=true"
-      - "traefik.http.routers.coolify.tls.certresolver=mytlschallenge"
-
 networks:
   proxy:
     driver: bridge
 
 volumes:
   traefik_data:
-    external: true
-  coolify_data:
     external: true
