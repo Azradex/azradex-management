@@ -8,10 +8,6 @@ services:
       - "443:443"
     volumes:
       - ./nginx.template.conf:/etc/nginx/nginx.template.conf:ro
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - certbot
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
     entrypoint:
@@ -21,16 +17,3 @@ services:
         envsubst '$$DOMAIN_NAME' < /etc/nginx/nginx.template.conf > /etc/nginx/nginx.conf
         while [ ! -f /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem ]; do sleep 2; done
         nginx -g 'daemon off;'
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        certbot certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email --force-renewal -d ${DOMAIN_NAME}
-        exit 0
