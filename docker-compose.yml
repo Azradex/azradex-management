@@ -1,19 +1,63 @@
+version: '3.8'
+
+networks:
+  coolify:
+    external: true
+
 services:
-  nginx:
-    image: nginx:latest
-    container_name: nginx_v4
-    restart: always
+  traefik:
+    container_name: coolify-proxy
+    image: 'traefik:v3.1'
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - coolify
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+      - '8080:8080'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:80/ping']
+      interval: 4s
+      timeout: 2s
+      retries: 5
     volumes:
-      - ./nginx.template.conf:/etc/nginx/nginx.template.conf:ro
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        envsubst '$$DOMAIN_NAME' < /etc/nginx/nginx.template.conf > /etc/nginx/nginx.conf
-        while [ ! -f /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem ]; do sleep 2; done
-        nginx -g 'daemon off;'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - '/data/coolify/proxy:/traefik'
+    command:
+      - '--ping=true'
+      - '--ping.entrypoint=http'
+      - '--api.dashboard=true'
+      - '--entrypoints.http.address=:80'
+      - '--entrypoints.https.address=:443'
+      - '--entrypoints.http.http.encodequerysemicolons=true'
+      - '--entryPoints.http.http2.maxConcurrentStreams=50'
+      - '--entrypoints.https.http.encodequerysemicolons=true'
+      - '--entryPoints.https.http2.maxConcurrentStreams=50'
+      - '--entrypoints.https.http3'
+      - '--providers.file.directory=/traefik/dynamic/'
+      - '--providers.docker.exposedbydefault=false'
+      - '--providers.file.watch=true'
+      - '--certificatesresolvers.letsencrypt.acme.email=admin@coolify.azradex.com'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge=true'
+      - '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http'
+      - '--certificatesresolvers.letsencrypt.acme.storage=/traefik/acme.json'
+      - '--api.insecure=false'
+      - '--providers.docker=true'
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.traefik.entrypoints=http'
+      - 'traefik.http.routers.traefik.rule=Host(`coolify.azradex.com`)'
+      - 'traefik.http.routers.traefik.middlewares=redirect-to-https'
+      - 'traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https'
+      - 'traefik.http.routers.traefik.tls=true'
+      - 'traefik.http.routers.traefik.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.traefik.service=api@internal'
+      - 'traefik.http.services.traefik.loadbalancer.server.port=8080'
+      - 'traefik.http.routers.traefik-secure.entrypoints=https'
+      - 'traefik.http.routers.traefik-secure.rule=Host(`coolify.azradex.com`)'
+      - 'traefik.http.routers.traefik-secure.tls=true'
+      - 'traefik.http.routers.traefik-secure.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.traefik-secure.service=api@internal'
