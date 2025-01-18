@@ -62,6 +62,3 @@ services:
       - 'traefik.http.routers.admin-secure.tls.certresolver=letsencrypt'
       - 'traefik.http.routers.admin-secure.service=admin-service'
       - 'traefik.http.services.admin-service.loadbalancer.server.port=8080'
-
-  coolify:
-    external: true
